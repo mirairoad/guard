@@ -6,7 +6,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/axadrn/shadcn-templ/v2 v2.0.0-beta.3
 	github.com/coder/websocket v1.8.15
-	github.com/mirairoad/howl-go v0.2.1
+	github.com/mirairoad/howl-go v0.3.0
 	go.opentelemetry.io/proto/otlp v1.11.0
 	golang.org/x/crypto v0.54.0
 	google.golang.org/protobuf v1.36.11

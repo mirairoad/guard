@@ -25,8 +25,7 @@ func mount(_ js.Value, args []js.Value) any {
 	}
 	route, _, ok := router.Lookup(routes, canonical(args[0].String()))
 	if ok && route.Mount != nil {
-		dom.SetRoot(args[1])
-		route.Mount()
+		dom.Mount(args[1], route.Mount) // opens the scope its effects and listeners are released with
 	}
 	return nil
 }
@@ -36,8 +35,8 @@ func unmount(_ js.Value, args []js.Value) any {
 		return nil
 	}
 	route, _, ok := router.Lookup(routes, canonical(args[0].String()))
-	if ok && route.Unmount != nil {
-		route.Unmount()
+	if ok {
+		dom.Unmount(route.Unmount) // nil is fine: the scope Mount opened is disposed either way
 	}
 	return nil
 }
