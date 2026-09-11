@@ -1640,6 +1640,7 @@ globalThis.guardPageUnmount = () => {
   unmountViews();
   dashboardDragging = null;
   dashboardEditing = false;
+  dragMovedAt = null;
   metricDragging = null;
   metricEditing = false;
   metricLayout = null;
@@ -1656,7 +1657,17 @@ for (const eventName of ["scroll", "wheel", "touchmove", "pointermove"]) {
 
 // Native drag-and-drop mirrors moving apps on a phone: edit mode turns the
 // whole card into the handle, then persistence waits until the drop.
+//
+// A move reflows the grid, and on a twelve-column board of mixed widths the
+// reflow can slide a different card under a pointer that has not moved — which,
+// answered, moves the card straight back. Chrome fires dragover every ~50ms
+// while the pointer holds still, so that was an endless two-step of whole-board
+// layouts that locked the tab. So a card moves again only once the pointer has.
+const DRAG_SLOP = 12;
+let dragMovedAt = null;
+
 document.addEventListener("dragstart", (event) => {
+  dragMovedAt = null;
   if (metricEditing && !event.target.closest?.("[data-widget-edit-controls]")) {
     metricDragging = event.target.closest?.("[data-metric-widget]");
     if (metricDragging) {
@@ -1681,13 +1692,18 @@ document.addEventListener("dragover", (event) => {
   event.preventDefault();
   event.dataTransfer.dropEffect = "move";
   if (!over || over === dragging || over.hidden) return;
+  if (dragMovedAt && Math.hypot(event.clientX - dragMovedAt.x, event.clientY - dragMovedAt.y) < DRAG_SLOP) return;
   const box = over.getBoundingClientRect();
   const after = event.clientY > box.top + box.height / 2 || (Math.abs(event.clientY - (box.top + box.height / 2)) < box.height / 3 && event.clientX > box.left + box.width / 2);
-  over.parentNode.insertBefore(dragging, after ? over.nextSibling : over);
+  const anchor = after ? over.nextSibling : over;
+  if (anchor === dragging || anchor === dragging.nextSibling) return; // already there
+  over.parentNode.insertBefore(dragging, anchor);
+  dragMovedAt = { x: event.clientX, y: event.clientY };
 });
 
 document.addEventListener("drop", (event) => { if (dashboardDragging || metricDragging) event.preventDefault(); });
 document.addEventListener("dragend", () => {
+  dragMovedAt = null;
   if (metricDragging) {
     metricDragging.classList.remove("opacity-40");
     metricDragging = null;
